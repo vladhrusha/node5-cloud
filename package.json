@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\"",
     "format": "prettier --write && eslint --fix",
-    "lint": "prettier --check && eslint --check"
+    "lint": "prettier --check && eslint --check",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
