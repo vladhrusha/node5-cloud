@@ -1,26 +1,37 @@
+import express from "express";
 import fetch from "node-fetch";
-export const handler = async (event) => {
-  try {
-    const response = await fetch(
-      "https://europe-central2-micro-arcadia-388515.cloudfunctions.net/geolocation",
-    );
-    const data = await response.json();
-    const cleanedString = data.cityLatLong.replace(':"', "").replace('"', "");
-    const openWeatherMapKey = process.env.openWeatherToken;
+import dotenv from "dotenv";
 
-    const [lat, long] = cleanedString.split(",");
-    const fetchURL = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${long}&appid=${openWeatherMapKey}&units=metric&cnt=7`;
-    const weatherResponse = await fetch(fetchURL);
-    const result = await weatherResponse.json();
-    return {
-      statusCode: 200,
-      body: result,
-    };
-  } catch (error) {
-    // console.error(error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
+dotenv.config();
+const app = express();
+app.set("trust proxy", true);
+
+app.get("/", (req, res) => {
+  res.send("Hello, Lambda!");
+});
+
+export const handler = async (event, context) => {
+  const server = app.listen(3000, () => {});
+
+  const userip = event.requestContext.http.sourceIp;
+  const url =
+    "https://ip-geolocation.whoisxmlapi.com/api/v1?apiKey=at_hnqocVbdqNjbI76eTam4VPViLZtcm&ipAddress=";
+  const response = await fetch(`${url}${userip}`);
+  if (!response.ok) {
+    throw new Error("Geolocation request failed");
   }
+  const data = await response.json();
+  const lat = data.location.lat;
+  const lng = data.location.lng;
+  const openWeatherMapKey = process.env.openWeatherToken;
+  const fetchURL = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${openWeatherMapKey}&units=metric&cnt=7`;
+  const weatherResponse = await fetch(fetchURL);
+  const result = await weatherResponse.json();
+  context.callbackWaitsForEmptyEventLoop = false;
+  server.close();
+
+  return {
+    statusCode: 200,
+    body: { result },
+  };
 };
