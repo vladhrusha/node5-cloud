@@ -2,16 +2,15 @@ import fetch from "node-fetch";
 
 import dotenv from "dotenv";
 import AWS from "aws-sdk";
-const ses = new AWS.SES({ region: "eu-north-1" }); // Replace 'us-east-1' with your preferred region
+const ses = new AWS.SES({ region: "eu-north-1" });
 
 dotenv.config();
 
 export const handler = async (event, context) => {
   try {
-    const { question, email, name } = JSON.parse(event.body); // Assuming the request payload is in JSON format
+    const { question, email, name } = JSON.parse(event.body);
     await verifyEmailAddress(email);
 
-    //Send email to the user
     const userParams = {
       Destination: {
         ToAddresses: [email],
@@ -30,7 +29,6 @@ export const handler = async (event, context) => {
     };
     await ses.sendEmail(userParams).promise();
 
-    // Send email to the admin
     const adminParams = {
       Destination: {
         ToAddresses: ["hrushavladyslavwork@gmail.com"],
