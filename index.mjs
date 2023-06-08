@@ -7,7 +7,7 @@ const s3 = new AWS.S3();
 dotenv.config();
 
 export const handler = async (event, context) => {
-  const bucketName = "5.3accessfilesystem";
+  const bucketName = process.env.accessFileSystem_bucketName;
 
   try {
     const s3Params = {
@@ -15,7 +15,9 @@ export const handler = async (event, context) => {
     };
     const data = await s3.listObjectsV2(s3Params).promise();
     const files = data.Contents;
-    const fileKeys = files.map((file) => file.Key);
+    const fileKeys = files.map(
+      (file) => process.env.accessFileSystem_URL + file.Key,
+    );
     return {
       statusCode: 200,
       body: { fileKeys },
