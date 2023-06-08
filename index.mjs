@@ -1,31 +1,54 @@
 import fetch from "node-fetch";
 
 import dotenv from "dotenv";
+import AWS from "aws-sdk";
+const ses = new AWS.SES({ region: "eu-north-1" });
+
 dotenv.config();
 
 export const handler = async (event, context) => {
   try {
-    const sourceIp = event.requestContext.http.sourceIp;
-    const url = process.env.geoIpfy_URL;
-    const geoResponse = await fetch(`${url}${sourceIp}`);
-    if (!geoResponse.ok) {
-      throw new Error("Geolocation request failed");
-    }
-    const sourceGeoData = await geoResponse.json();
-    const lat = sourceGeoData.location.lat;
-    const lng = sourceGeoData.location.lng;
+    const { question, email, name } = JSON.parse(event.body);
+    await verifyEmailAddress(email);
 
-    const openWeatherMapKey = process.env.openWeatherToken;
-    const fetchURL = `${process.env.openWeather_URL}?lat=${lat}&lon=${lng}&appid=${openWeatherMapKey}&units=metric&cnt=7`;
-    const weatherResponse = await fetch(fetchURL);
-    if (!weatherResponse.ok) {
-      throw new Error("Forecast request failed");
-    }
-    const forecastResult = await weatherResponse.json();
+    const userParams = {
+      Destination: {
+        ToAddresses: [email],
+      },
+      Message: {
+        Body: {
+          Text: {
+            Data: `Hello ${name},\n\n ${question}`,
+          },
+        },
+        Subject: {
+          Data: "Service1234 Notification",
+        },
+      },
+      Source: "hrushavladwork@gmail.com",
+    };
+    await ses.sendEmail(userParams).promise();
 
+    const adminParams = {
+      Destination: {
+        ToAddresses: ["hrushavladyslavwork@gmail.com"],
+      },
+      Message: {
+        Body: {
+          Text: {
+            Data: `User ${name}, asked this \n\n ${question}`,
+          },
+        },
+        Subject: {
+          Data: `Service1234 question from ${name}`,
+        },
+      },
+      Source: "hrushavladwork@gmail.com",
+    };
+    await ses.sendEmail(adminParams).promise();
     return {
       statusCode: 200,
-      body: forecastResult,
+      body: "email sent",
     };
   } catch (err) {
     return {
@@ -34,3 +57,10 @@ export const handler = async (event, context) => {
     };
   }
 };
+async function verifyEmailAddress(email) {
+  const verifyParams = {
+    EmailAddress: email,
+  };
+
+  await ses.verifyEmailAddress(verifyParams).promise();
+}
