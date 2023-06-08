@@ -2,65 +2,28 @@
 
 import dotenv from "dotenv";
 import AWS from "aws-sdk";
-const ses = new AWS.SES({ region: "eu-north-1" });
+const s3 = new AWS.S3();
 
 dotenv.config();
 
 export const handler = async (event, context) => {
+  const bucketName = "5.3accessfilesystem";
+
   try {
-    const { question, email, name } = JSON.parse(event.body);
-    await verifyEmailAddress(email);
-
-    const userParams = {
-      Destination: {
-        ToAddresses: [email],
-      },
-      Message: {
-        Body: {
-          Text: {
-            Data: `Hello ${name},\n\n ${question}`,
-          },
-        },
-        Subject: {
-          Data: "Service1234 Notification",
-        },
-      },
-      Source: "hrushavladwork@gmail.com",
+    const s3Params = {
+      Bucket: bucketName,
     };
-    await ses.sendEmail(userParams).promise();
-
-    const adminParams = {
-      Destination: {
-        ToAddresses: ["hrushavladyslavwork@gmail.com"],
-      },
-      Message: {
-        Body: {
-          Text: {
-            Data: `User ${name}, asked this \n\n ${question}`,
-          },
-        },
-        Subject: {
-          Data: `Service1234 question from ${name}`,
-        },
-      },
-      Source: "hrushavladwork@gmail.com",
-    };
-    await ses.sendEmail(adminParams).promise();
+    const data = await s3.listObjectsV2(s3Params).promise();
+    const files = data.Contents;
+    const fileKeys = files.map((file) => file.Key);
     return {
       statusCode: 200,
-      body: "email sent",
+      body: { fileKeys },
     };
-  } catch (err) {
+  } catch (error) {
     return {
       statusCode: 500,
-      body: err.message,
+      body: error.message,
     };
   }
 };
-async function verifyEmailAddress(email) {
-  const verifyParams = {
-    EmailAddress: email,
-  };
-
-  await ses.verifyEmailAddress(verifyParams).promise();
-}
