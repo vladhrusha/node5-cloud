@@ -23,6 +23,7 @@ export const handler = async (event, context) => {
   } catch (error) {
     return {
       statusCode: 500,
+      headers: {},
       body: error.message,
     };
   }
